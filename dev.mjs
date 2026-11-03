@@ -6,7 +6,7 @@ process.env.FLYALERT_LOCAL_STORE ||= path.resolve(".local-data");
 const api = (await import("./netlify/functions/api.mjs")).default;
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 http.createServer(async (req, res) => {
-  const url = new URL(req.url, "http://localhost:8888");
+  const url = new URL(req.url, "http://localhost:" + (process.env.PORT || 8888));
   if (url.pathname.startsWith("/api/")) {
     const chunks = [];
     for await (const c of req) chunks.push(c);

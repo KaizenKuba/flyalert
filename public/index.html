@@ -200,6 +200,11 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.q
 async function route() {
   clearTimeout(pollTimer);
   if (!STATE) { try { STATE = await api("/state"); } catch (e) { $("#app").innerHTML = `<div class="login card"><h1>FlyAlert</h1><p class="err">${esc(e.message)}</p></div>`; return; } }
+  const k = location.hash.match(/^#k=([a-z0-9_-]+)\.([a-f0-9]+)/);
+  if (k) {
+    try { const r = await api("/invite", { method: "POST", body: { user: k[1], code: k[2] } }); setToken(r.token); history.replaceState(null, "", location.pathname); if (r.me) toast(`Cześć ${r.me.name}! Jesteś zalogowany.`); }
+    catch (e) { $("#app").innerHTML = `<div class="login card"><h1>FlyAlert</h1><p class="err">${esc(e.message)}</p></div>`; return; }
+  }
   if (!TOKEN) return renderLogin();
   const m = location.hash.match(/^#w(\d+)/);
   try {
@@ -216,6 +221,7 @@ function renderLogin() {
     <div class="logo" style="font-size:24px;margin-bottom:6px">${I.plane}<span>FlyAlert</span></div>
     <p class="mut" style="margin-top:0">${setup ? "Witaj! Ustaw hasło do swojego panelu. Będziesz go używać na tablecie, telefonie i komputerze." : "Monitor cen lotów. Zaloguj się."}</p>
     <form id="lf">
+      ${setup ? "" : `<label class="f">Login <span class="mut small">(zostaw puste, jeśli to Twoja strona)</span></label><input class="in" name="user" autocomplete="username" autocapitalize="none" placeholder="np. bartek">`}
       <label class="f">Hasło</label>
       <input class="in" type="password" name="pw" autocomplete="${setup ? "new-password" : "current-password"}" required minlength="${setup ? 6 : 1}" autofocus>
       ${setup ? `<label class="f">Powtórz hasło</label><input class="in" type="password" name="pw2" autocomplete="new-password" required>` : ""}
@@ -228,7 +234,7 @@ function renderLogin() {
     const f = e.target;
     try {
       if (setup && f.pw.value !== f.pw2.value) throw new Error("Hasła się różnią.");
-      const r = await api(setup ? "/setup" : "/login", { method: "POST", body: { password: f.pw.value } });
+      const r = await api(setup ? "/setup" : "/login", { method: "POST", body: { password: f.pw.value, user: f.user ? f.user.value.trim() : "" } });
       setToken(r.token); STATE.setup = true;
       if (setup) { route(); setTimeout(() => openSettings(true), 300); } else route();
     } catch (err) { $("#lerr").textContent = err.message; }
@@ -492,6 +498,7 @@ function openEditor(w = null) {
 async function openSettings(first = false) {
   const s = await api("/settings");
   const KEEP = "__keep__";
+  if (!s.admin) return openFriendSettings(s);
   const secret = (name, val, ph) => `<input class="in" name="${name}" type="password" autocomplete="off" placeholder="${val === KEEP ? "zapisany – wpisz nowy, aby zmienić" : ph}">`;
   const bg = sheet(`
     <div class="bar"><h2 style="margin:0" class="grow">Ustawienia</h2><button class="btn icon ghost" data-close>${I.x}</button></div>
@@ -514,6 +521,10 @@ async function openSettings(first = false) {
       <p class="err" id="serr"></p>
       <button class="btn primary" style="width:100%;margin-top:10px;min-height:52px">Zapisz ustawienia</button>
     </form>
+    <label class="f">Znajomi</label>
+    <div class="note small">Wpisz imię kolegi i dotknij „Utwórz link”. Wyślij mu ten link (SMS, WhatsApp). Po otwarciu jest od razu zalogowany i ma własne obserwacje i własne alerty. Korzysta z Twoich kluczy do cen. Nie potrzebuje żadnego konta ani hasła.</div>
+    <div style="display:flex;gap:8px;margin-top:10px"><input class="in" id="newfriend" placeholder="np. bartek" autocapitalize="none"><button type="button" class="btn primary" id="addfriend">Utwórz link</button></div>
+    <div id="friends" style="margin-top:10px"></div>
     <label class="f">Konto</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="chpw">Zmień hasło</button><button class="btn danger" id="lo">Wyloguj</button></div>
     <p class="mut small" style="margin-top:20px">Ceny sprawdza serwer Netlify co godzinę (każda obserwacja według swojego interwału). Historię cen aplikacja zbiera od dnia dodania obserwacji, a Google Flights dodaje historię trasy z ok. 60 dni.</p>`);
@@ -527,6 +538,49 @@ async function openSettings(first = false) {
   f.onsubmit = async (e) => { e.preventDefault(); try { await api("/settings", { method: "PUT", body: collect() }); bg.remove(); toast("Zapisano ustawienia."); } catch (err) { $("#serr", bg).textContent = err.message; } };
   $("#lo", bg).onclick = () => { bg.remove(); logout(); };
   $("#chpw", bg).onclick = async () => { const p = prompt("Nowe hasło (min. 6 znaków):"); if (!p) return; try { const r = await api("/password", { method: "POST", body: { password: p } }); setToken(r.token); toast("Hasło zmienione."); } catch (e) { toast(e.message); } };
+  const fr = $("#friends", bg);
+  const loadFriends = async () => {
+    const us = await api("/users");
+    fr.innerHTML = us.map((u) => `<div class="card pad" style="margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center"><b class="grow">${esc(u.name)}</b><span class="mut small">${u.joined ? "aktywny" : "jeszcze nie otworzył"} · ${u.watches} obs. · Telegram ${u.telegram ? "✓" : "–"}</span></div>
+      <input class="in" readonly value="${esc(u.invite)}" style="margin-top:8px;font-size:13px" onclick="this.select()">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button type="button" class="btn primary" data-copy="${esc(u.invite)}" data-n="${esc(u.name)}">Kopiuj / wyślij link</button>
+        <button type="button" class="btn" data-reset="${esc(u.name)}">Nowy link</button>
+        <button type="button" class="btn danger" data-del="${esc(u.name)}">Usuń</button></div></div>`).join("") || '<div class="mut small">Nie masz jeszcze znajomych.</div>';
+    fr.querySelectorAll("[data-copy]").forEach((b) => b.onclick = () => shareLink(b.dataset.copy, b.dataset.n));
+    fr.querySelectorAll("[data-reset]").forEach((b) => b.onclick = async () => { if (!confirm(`Stary link ${b.dataset.reset} przestanie działać. Obserwacje zostaną. Dalej?`)) return; await api("/users", { method: "POST", body: { name: b.dataset.reset, reset: true } }); loadFriends(); });
+    fr.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { if (!confirm(`Usunąć konto ${b.dataset.del} razem z jego obserwacjami?`)) return; await api("/users/" + b.dataset.del, { method: "DELETE" }); loadFriends(); });
+  };
+  $("#addfriend", bg).onclick = async () => { try { const r = await api("/users", { method: "POST", body: { name: $("#newfriend", bg).value.trim() } }); $("#newfriend", bg).value = ""; await loadFriends(); shareLink(r.invite, r.name); } catch (e) { toast(e.message); } };
+  loadFriends().catch((e) => fr.textContent = e.message);
+}
+
+async function shareLink(link, name) {
+  const text = `Cześć! Tu jest FlyAlert, monitor cen lotów. Otwórz link, a będziesz od razu zalogowany: ${link}`;
+  try { if (navigator.share) { await navigator.share({ title: "FlyAlert", text }); return; } } catch (e) { if (e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(link); toast(`Skopiowano link dla: ${name}`); } catch { prompt("Skopiuj link:", link); }
+}
+
+function openFriendSettings(s) {
+  const bot = s.sharedBot;
+  const bg = sheet(`
+    <div class="bar"><h2 style="margin:0" class="grow">Ustawienia</h2><button class="btn icon ghost" data-close>${I.x}</button></div>
+    <div class="note small">Jesteś zalogowany jako <b>${esc(s.name)}</b>. Ceny sprawdza serwer właściciela strony, Ty tylko dodajesz swoje obserwacje.</div>
+    <label class="f">Alerty na Telegram</label>
+    ${bot ? `<div class="note small">1) Otwórz <a href="https://t.me/${esc(bot)}" target="_blank" rel="noopener"><b>@${esc(bot)}</b></a> w Telegramie i dotknij <b>Start</b> (albo napisz cokolwiek). 2) Wróć tutaj i dotknij „Połącz”.</div>`
+          : `<div class="note small">Właściciel strony nie podłączył jeszcze bota Telegram. Alerty zobaczysz w aplikacji.</div>`}
+    <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn primary" id="tgdetect" ${bot ? "" : "disabled"}>Połącz</button><button type="button" class="btn" id="tgtest" ${s.telegramChatId ? "" : "disabled"}>Wyślij testowy alert</button></div>
+    <div class="mut small" id="tgstate" style="margin-top:8px">${s.telegramChatId ? "Telegram połączony ✓" : "Telegram niepołączony"}</div>
+    <p class="err" id="serr"></p>
+    <label class="f">Konto</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="chpw">Ustaw hasło (opcjonalnie)</button><button class="btn danger" id="lo">Wyloguj</button></div>
+    <p class="mut small" style="margin-top:12px">Hasło przyda się, gdy zechcesz zalogować się na innym urządzeniu bez linku: login <b>${esc(s.name)}</b> + to hasło.</p>`);
+  $("[data-close]", bg).onclick = () => bg.remove();
+  $("#tgdetect", bg).onclick = async () => { try { const r = await api("/telegram/detect", { method: "POST", body: {} }); await api("/settings", { method: "PUT", body: { telegramChatId: r.chatId } }); $("#tgstate", bg).textContent = `Telegram połączony ✓${r.name ? " (" + r.name + ")" : ""}`; $("#tgtest", bg).disabled = false; } catch (e) { $("#serr", bg).textContent = e.message; } };
+  $("#tgtest", bg).onclick = async () => { try { const r = await api("/telegram/test", { method: "POST" }); toast("Wynik: " + r.delivered); } catch (e) { $("#serr", bg).textContent = e.message; } };
+  $("#lo", bg).onclick = () => { bg.remove(); logout(); };
+  $("#chpw", bg).onclick = async () => { const p = prompt("Nowe hasło (min. 6 znaków):"); if (!p) return; try { const r = await api("/password", { method: "POST", body: { password: p } }); setToken(r.token); toast("Hasło ustawione."); } catch (e) { toast(e.message); } };
 }
 
 route();
