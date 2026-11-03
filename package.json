@@ -1,0 +1,10 @@
+{
+  "name": "flyalert-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "FlyAlert – monitor cen lotów: panel na Netlify + skaner w chmurze",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.7"
+  }
+}

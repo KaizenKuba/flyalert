@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FlyAlert</title>
+<meta name="theme-color" content="#0b5cff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FlyAlert">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<style>
+:root{
+  --bg:#f3f5f9;--card:#fff;--ink:#121620;--ink2:#465062;--mut:#7b8597;--line:#e4e8ef;
+  --acc:#0b5cff;--acc-ink:#fff;--acc-soft:#e8efff;--good:#0f8a4a;--good-soft:#e3f6ec;--warn:#b26b00;--bad:#d1293d;--bad-soft:#fdecee;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 4px 16px rgba(16,24,40,.06);--r:18px;
+  --grey-line:#a8b0bd;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1117;--card:#161b24;--ink:#e9edf3;--ink2:#b5bdca;--mut:#8590a2;--line:#262e3b;
+  --acc:#4d8dff;--acc-soft:#16243f;--good:#3ccf7e;--good-soft:#11291d;--bad:#ff6b7b;--bad-soft:#331a1f;
+  --shadow:0 1px 2px rgba(0,0,0,.4);--grey-line:#5b6575;
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding-bottom:env(safe-area-inset-bottom)}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--acc)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+header.top .wrap{display:flex;align-items:center;gap:12px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:750;font-size:20px;letter-spacing:-.01em;cursor:pointer}
+.logo svg{width:32px;height:32px}
+.grow{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-weight:600;white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.danger{color:var(--bad)}
+.btn.icon{width:44px;padding:0}
+.btn[disabled]{opacity:.55;pointer-events:none}
+.btn svg{width:20px;height:20px}
+main{padding:22px 0 60px}
+h1{font-size:28px;line-height:1.15;margin:0;letter-spacing:-.02em}
+h2{font-size:18px;margin:0 0 12px}
+.mut{color:var(--mut)}
+.small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.pad{padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.wcard{padding:18px 20px;cursor:pointer;display:flex;flex-direction:column;gap:10px;transition:transform .1s}
+.wcard:active{transform:scale(.99)}
+.wcard .route{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.wcard .row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.price{font-variant-numeric:tabular-nums;font-weight:800;letter-spacing:-.02em}
+.wcard .price{font-size:30px;line-height:1}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:650;padding:4px 10px;border-radius:99px;background:var(--acc-soft);color:var(--acc)}
+.badge.good{background:var(--good-soft);color:var(--good)}
+.badge.off{background:var(--line);color:var(--mut)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:70px 20px}
+.empty svg{width:72px;height:72px;color:var(--acc);opacity:.9}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:var(--acc-soft);color:var(--acc);font-weight:600;font-size:14px}
+.chip button{border:0;background:none;padding:0 0 0 2px;cursor:pointer;color:inherit;font-size:18px;line-height:1}
+.chip.plain{background:var(--bg);color:var(--ink2);font-weight:500}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{padding:14px 16px}
+.tile .k{font-size:13px;color:var(--mut)}
+.tile .v{font-size:24px}
+.tile.good{background:var(--good-soft);border-color:transparent}
+.tile.good .v{color:var(--good)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.cols{grid-template-columns:1fr}}
+.section{margin-top:16px}
+.offer{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line)}
+.offer:last-child{border-bottom:0}
+.offer .r{font-weight:650}
+.offer .p{font-size:20px}
+.offer.good .p{color:var(--good)}
+@media (max-width:560px){.offer{grid-template-columns:1fr auto}.offer .buy{grid-column:1/-1}}
+.list-row{display:flex;justify-content:space-between;padding:10px 2px;border-bottom:1px solid var(--line)}
+.list-row:last-child{border-bottom:0}
+.alert{padding:14px 16px;border-radius:14px;background:var(--bg);white-space:pre-wrap;font-size:14px;margin-bottom:10px}
+.chart{width:100%;height:auto;display:block;touch-action:pan-y}
+.chart text{fill:var(--mut);font-size:12px}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--mut);flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:6px 10px;border-radius:8px;font-size:13px;z-index:50;transform:translate(-50%,-120%);white-space:nowrap}
+.err{color:var(--bad);white-space:pre-wrap;font-size:14px}
+.note{background:var(--acc-soft);color:var(--ink2);border-radius:14px;padding:14px 16px;font-size:14px}
+/* formularze */
+label.f{display:block;font-size:14px;font-weight:600;color:var(--ink2);margin:18px 0 8px}
+.in{width:100%;min-height:48px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:16px}
+.in:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media (max-width:560px){.three{grid-template-columns:1fr 1fr}}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{flex:1;min-height:40px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-weight:600;color:var(--ink2);padding:0 10px}
+.seg button.on{background:var(--card);color:var(--acc);box-shadow:var(--shadow)}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:4px 0;cursor:pointer}
+.switch input{appearance:none;width:52px;height:32px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:.2s;flex:none}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.switch input:checked{background:var(--acc)}
+.switch input:checked::after{left:23px}
+.picker .results{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:8px;background:var(--bg)}
+.picker .grp{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);padding:10px 14px 4px;font-weight:700}
+.picker .opt{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;min-height:48px}
+.picker .opt:hover,.picker .opt:active{background:var(--acc-soft)}
+.picker .opt .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);font-size:15px;flex:none}
+.picker .opt .t{font-weight:600}
+.picker .opt .s{font-size:13px;color:var(--mut)}
+.picker .opt.sel{opacity:.45}
+.picker .resolved{font-size:13px;color:var(--mut);margin-top:8px}
+.quick{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-top:8px;scrollbar-width:none}
+.quick button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px}
+.quick button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+/* okno modalne */
+.sheet-bg{position:fixed;inset:0;background:rgba(10,14,22,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+@media (min-width:700px){.sheet-bg{align-items:center}}
+.sheet{background:var(--card);width:min(760px,100%);max-height:94vh;overflow:auto;border-radius:22px 22px 0 0;padding:22px 24px calc(24px + env(safe-area-inset-bottom));animation:up .2s}
+@media (min-width:700px){.sheet{border-radius:22px}}
+.sheet .bar{display:flex;align-items:center;gap:10px;position:sticky;top:-22px;background:var(--card);padding:6px 0 12px;margin-top:-6px;z-index:2}
+@keyframes up{from{transform:translateY(30px);opacity:.5}}
+@keyframes fade{from{opacity:0}}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:60;font-weight:600;box-shadow:var(--shadow);max-width:90vw}
+.login{max-width:420px;margin:12vh auto 0;padding:28px}
+.prov{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;cursor:pointer;margin-bottom:10px}
+.prov.on{border-color:var(--acc);background:var(--acc-soft)}
+.prov input{margin-top:4px;accent-color:var(--acc);width:20px;height:20px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="tip" class="tip hide"></div>
+
+<script>
+// ===================================================================== narzędzia
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const money = (v, c = "") => (v == null || !isFinite(v) ? "–" : Math.round(v).toLocaleString("pl-PL") + (c ? " " + c : ""));
+const MONTHS = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
+const MON_SHORT = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
+const DOW = ["nd","pn","wt","śr","cz","pt","sb"];
+const dLong = (s) => { if (!s) return ""; const d = new Date(s + "T00:00:00"); return `${DOW[d.getDay()]} ${d.getDate()} ${MON_SHORT[d.getMonth()]} ${d.getFullYear()}`; };
+const dShort = (s) => { if (!s) return ""; const d = new Date(s + "T00:00:00"); return `${d.getDate()} ${MON_SHORT[d.getMonth()]}`; };
+const ago = (iso) => { if (!iso) return "jeszcze nie"; const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if (m < 1) return "przed chwilą"; if (m < 60) return `${m} min temu`; const h = Math.round(m / 60); if (h < 48) return `${h} godz. temu`; return `${Math.round(h / 24)} dni temu`; };
+const isoLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const scanning = (w) => w.scanningSince && Date.now() - Date.parse(w.scanningSince) < 20 * 60000;
+const I = {
+  plane: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+};
+
+// ===================================================================== API
+let TOKEN = null;
+try { TOKEN = localStorage.getItem("fa_token"); } catch {}
+async function api(path, opts = {}) {
+  const r = await fetch("/api" + path, { method: opts.method || "GET", headers: { "Content-Type": "application/json", ...(TOKEN ? { Authorization: "Bearer " + TOKEN } : {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined });
+  let j = {};
+  try { j = await r.json(); } catch {}
+  if (r.status === 401 && path !== "/login") { logout(true); throw new Error("Zaloguj się ponownie."); }
+  if (!r.ok) throw new Error(j.error || "Błąd " + r.status);
+  return j;
+}
+function setToken(t) { TOKEN = t; try { localStorage.setItem("fa_token", t); } catch {} }
+function logout(silent) { TOKEN = null; try { localStorage.removeItem("fa_token"); } catch {} if (!silent) route(); else renderLogin(); }
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3200); }
+
+// ===================================================================== szkielet
+let CATALOG = null, STATE = null, pollTimer = null;
+function shell(inner, opts = {}) {
+  $("#app").innerHTML = `
+  <header class="top"><div class="wrap">
+    ${opts.back ? `<button class="btn icon ghost" onclick="go('')" aria-label="Wróć">${I.back}</button>` : ""}
+    <div class="logo" onclick="go('')">${I.plane}<span>FlyAlert</span></div>
+    <div class="grow"></div>
+    ${opts.actions || ""}
+    <button class="btn icon ghost" onclick="openSettings()" aria-label="Ustawienia">${I.gear}</button>
+  </div></header>
+  <main><div class="wrap">${inner}</div></main>`;
+}
+function go(hash) { location.hash = hash; }
+window.addEventListener("hashchange", () => { document.querySelectorAll(".sheet-bg").forEach((x) => x.remove()); route(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll(".sheet-bg").forEach((x) => x.remove()); });
+
+async function route() {
+  clearTimeout(pollTimer);
+  if (!STATE) { try { STATE = await api("/state"); } catch (e) { $("#app").innerHTML = `<div class="login card"><h1>FlyAlert</h1><p class="err">${esc(e.message)}</p></div>`; return; } }
+  if (!TOKEN) return renderLogin();
+  const m = location.hash.match(/^#w(\d+)/);
+  try {
+    if (!CATALOG) CATALOG = await api("/catalog");
+    if (m) await renderDetail(+m[1]); else await renderHome();
+  } catch (e) { if (TOKEN) shell(`<div class="card pad err">${esc(e.message)}</div>`); }
+}
+
+// ===================================================================== logowanie
+function renderLogin() {
+  const setup = !STATE.setup;
+  $("#app").innerHTML = `
+  <div class="login card">
+    <div class="logo" style="font-size:24px;margin-bottom:6px">${I.plane}<span>FlyAlert</span></div>
+    <p class="mut" style="margin-top:0">${setup ? "Witaj! Ustaw hasło do swojego panelu. Będziesz go używać na tablecie, telefonie i komputerze." : "Monitor cen lotów. Zaloguj się."}</p>
+    <form id="lf">
+      <label class="f">Hasło</label>
+      <input class="in" type="password" name="pw" autocomplete="${setup ? "new-password" : "current-password"}" required minlength="${setup ? 6 : 1}" autofocus>
+      ${setup ? `<label class="f">Powtórz hasło</label><input class="in" type="password" name="pw2" autocomplete="new-password" required>` : ""}
+      <p class="err" id="lerr"></p>
+      <button class="btn primary" style="width:100%;margin-top:8px">${setup ? "Ustaw hasło i zacznij" : "Zaloguj"}</button>
+    </form>
+  </div>`;
+  $("#lf").onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    try {
+      if (setup && f.pw.value !== f.pw2.value) throw new Error("Hasła się różnią.");
+      const r = await api(setup ? "/setup" : "/login", { method: "POST", body: { password: f.pw.value } });
+      setToken(r.token); STATE.setup = true;
+      if (setup) { route(); setTimeout(() => openSettings(true), 300); } else route();
+    } catch (err) { $("#lerr").textContent = err.message; }
+  };
+}
+
+// ===================================================================== lista
+function sparkline(points, target) {
+  if (!points || points.length < 2) return "";
+  const W = 120, H = 34, ys = points.map((p) => p.min), lo = Math.min(...ys), hi = Math.max(...ys) || 1;
+  const X = (i) => (i / (points.length - 1)) * W, Y = (v) => H - 3 - ((v - lo) / (hi - lo || 1)) * (H - 6);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><path d="${points.map((p, i) => (i ? "L" : "M") + X(i).toFixed(1) + "," + Y(p.min).toFixed(1)).join("")}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round"/></svg>`;
+}
+let HOME_DETAILS = {};
+async function renderHome() {
+  const ws = await api("/watches");
+  shell(`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+      <div class="grow"><h1>Twoje obserwacje</h1><div class="mut small">Ceny sprawdzane automatycznie w chmurze. Alerty przychodzą na Telegram.</div></div>
+      <button class="btn primary" onclick="openEditor()">${I.plus} Nowa obserwacja</button>
+    </div>
+    ${ws.length ? `<div class="grid">${ws.map(cardHtml).join("")}</div>` : `
+      <div class="card empty">${I.plane}<h2 style="margin-top:12px">Zacznij od pierwszej obserwacji</h2>
+      <p class="mut">Wybierz skąd i dokąd chcesz lecieć (lotnisko, region albo cały kraj), w jakim terminie i za ile.</p>
+      <button class="btn primary" onclick="openEditor()">${I.plus} Nowa obserwacja</button></div>`}
+  `);
+  // dociągnij historię do mini-wykresów
+  for (const w of ws) api("/watches/" + w.id).then((d) => { HOME_DETAILS[w.id] = d; const el = $(`#spark${w.id}`); if (el) el.innerHTML = sparkline(d.history.slice(-40), d.targetPrice); }).catch(() => {});
+  if (ws.some(scanning)) pollTimer = setTimeout(route, 5000);
+}
+function cardHtml(w) {
+  const hit = w.targetPrice && w.lastMin && w.lastMin <= w.targetPrice;
+  const status = !w.active ? `<span class="badge off">Wstrzymana</span>` : scanning(w) ? `<span class="badge"><span class="spin"></span> Sprawdzam ceny…</span>`
+    : hit ? `<span class="badge good">W Twoim budżecie</span>` : w.lastError && !w.lastMin ? `<span class="badge bad">Błąd</span>` : `<span class="badge">Aktywna · co ${w.intervalHours} h</span>`;
+  return `<div class="card wcard" onclick="go('w${w.id}')">
+    <div class="row" style="align-items:flex-start"><div class="route">${esc(w.name)}</div>${status}</div>
+    <div class="mut small">${dShort(w.dateFrom)} – ${dShort(w.dateTo)} ${new Date(w.dateTo).getFullYear()} · ${w.oneWay ? "w jedną stronę" : `${w.nightsMin}–${w.nightsMax} nocy`}</div>
+    <div class="row">
+      <div><div class="mut small">teraz od</div><div class="price" style="color:${hit ? "var(--good)" : "inherit"}">${money(w.lastMin)} <span style="font-size:16px;font-weight:600">${w.currency}</span></div>
+        ${w.targetPrice ? `<div class="mut small">cel: ${money(w.targetPrice, w.currency)}</div>` : ""}</div>
+      <div id="spark${w.id}"></div>
+    </div></div>`;
+}
+
+// ===================================================================== szczegóły
+let DETAIL = null;
+async function renderDetail(id) {
+  const w = await api("/watches/" + id);
+  DETAIL = w;
+  const c = w.currency, cur = w.last ? Math.min(...w.last.offers.map((o) => o.price)) : null, hit = w.targetPrice && cur && cur <= w.targetPrice;
+  const scan = scanning(w);
+  shell(`
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px">
+      <div class="grow" style="min-width:260px">
+        <h1>${esc(w.name)}</h1>
+        <div class="mut" style="margin-top:6px">${dLong(w.dateFrom)} – ${dLong(w.dateTo)} · ${w.oneWay ? "w jedną stronę" : `pobyt ${w.nightsMin}–${w.nightsMax} nocy`}${w.directOnly ? " · tylko bezpośrednie" : ""}</div>
+        <div class="mut small" style="margin-top:4px">${w.pairs} tras · sprawdzane co ${w.intervalHours} h · ostatnio ${ago(w.lastScanAt)} ${!w.active ? " · <b>wstrzymana</b>" : ""}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="scanNow(${w.id})" ${scan ? "disabled" : ""}>${scan ? '<span class="spin"></span> Sprawdzam…' : I.refresh + " Sprawdź teraz"}</button>
+        <button class="btn" onclick="openEditor(DETAIL)">${I.edit} Edytuj</button>
+        <button class="btn" onclick="toggleWatch(${w.id}, ${!w.active})">${w.active ? "Wstrzymaj" : "Wznów"}</button>
+        <button class="btn danger" onclick="delWatch(${w.id})">Usuń</button>
+      </div>
+    </div>
+    <div class="card pad" style="margin-bottom:16px">
+      <div class="two" style="gap:18px">
+        <div><div class="mut small" style="margin-bottom:6px">Skąd</div><div class="chips">${w.originAirports.map((a) => `<span class="chip plain">${esc(a)}</span>`).join("")}</div></div>
+        <div><div class="mut small" style="margin-bottom:6px">Dokąd</div><div class="chips">${w.destinationAirports.map((a) => `<span class="chip plain">${esc(a)}</span>`).join("")}</div></div>
+      </div>
+    </div>
+    ${w.lastError ? `<div class="card pad section" style="background:var(--bad-soft);border-color:transparent"><div class="err">${esc(w.lastError)}</div></div>` : ""}
+    <div class="tiles section">
+      <div class="card tile ${hit ? "good" : ""}"><div class="k">Teraz najtaniej</div><div class="v price">${money(cur, c)}</div></div>
+      <div class="card tile"><div class="k">Twój cel</div><div class="v price">${money(w.targetPrice, c)}</div></div>
+      <div class="card tile"><div class="k">Min. 30 dni</div><div class="v price">${money(w.stats.d30, c)}</div></div>
+      <div class="card tile"><div class="k">Min. 90 dni</div><div class="v price">${money(w.stats.d90, c)}</div></div>
+      <div class="card tile"><div class="k">Min. 180 dni</div><div class="v price">${money(w.stats.d180, c)}</div></div>
+      ${w.stats.google ? `<div class="card tile"><div class="k">Google, ~60 dni</div><div class="v price">${money(w.stats.google, c)}</div></div>` : ""}
+    </div>
+    <div class="card pad section">
+      <h2>Najtańsza cena w czasie</h2>
+      <div class="legend"><span><i style="background:var(--acc)"></i>Twoje skany</span>${w.ext.length ? '<span><i style="background:var(--grey-line)"></i>Historia Google Flights</span>' : ""}${w.targetPrice ? '<span><i style="background:var(--good)"></i>Cel</span>' : ""}</div>
+      <div id="ch-hist" style="margin-top:8px"></div>
+    </div>
+    <div class="card pad section">
+      <h2>Ceny wg dnia wylotu</h2>
+      <div class="mut small" style="margin-top:-6px">Dotknij słupka, żeby zobaczyć cenę. Zielone = w Twoim budżecie (albo najtańszy dzień).</div>
+      <div id="ch-cal" style="margin-top:10px"></div>
+    </div>
+    <div class="card pad section">
+      <h2>Najlepsze oferty teraz</h2>
+      ${w.last ? w.last.offers.slice(0, 25).map((o) => {
+        const good = w.targetPrice && o.price <= w.targetPrice;
+        return `<div class="offer ${good ? "good" : ""}">
+          <div><div class="r">${esc(o.originLabel)} → ${esc(o.destinationLabel)}</div>
+            <div class="mut small">${dLong(o.depart)}${o.ret ? " – " + dLong(o.ret) : ""} · ${esc(o.airline || "")}${o.stops ? ` · ${o.stops} przes.` : " · bezpośredni"}</div></div>
+          <div class="p price">${money(o.price, o.currency)}</div>
+          <a class="btn buy" href="${esc(o.link || googleLink(o))}" target="_blank" rel="noopener">Kup ↗</a>
+        </div>`; }).join("") : `<div class="mut">${scan ? "Pierwszy skan trwa – wyniki pojawią się za chwilę." : "Brak wyników."}</div>`}
+    </div>
+    <div class="cols section">
+      <div class="card pad"><h2>Dokąd najtaniej</h2>${(w.last?.byDest || []).map((x) => `<div class="list-row"><span>${esc(x.label)}</span><b class="price">${money(x.p, c)}</b></div>`).join("") || '<div class="mut">–</div>'}</div>
+      <div class="card pad"><h2>Skąd najtaniej</h2>${(w.last?.byOrigin || []).map((x) => `<div class="list-row"><span>${esc(x.label)}</span><b class="price">${money(x.p, c)}</b></div>`).join("") || '<div class="mut">–</div>'}</div>
+    </div>
+    <div class="card pad section"><h2>Alerty</h2>${w.alerts.length ? w.alerts.map((a) => `<div class="alert"><b>${new Date(a.t).toLocaleString("pl-PL")}</b> · <span class="mut">${esc(a.delivered)}</span>\n${esc(a.text)}</div>`).join("") : '<div class="mut">Jeszcze nie było alertów. Przyjdą, gdy cena spadnie albo wejdzie w Twój budżet.</div>'}</div>
+  `, { back: true });
+  drawHist(w); drawCal(w);
+  if (scan) pollTimer = setTimeout(route, 4000);
+}
+const googleLink = (o) => "https://www.google.com/travel/flights?q=" + encodeURIComponent(`Flights from ${o.origin} to ${o.destination} on ${o.depart}${o.ret ? " returning " + o.ret : ""}`);
+
+function showTip(e, text) { const t = $("#tip"); t.textContent = text; t.classList.remove("hide"); const p = e.touches ? e.touches[0] : e; t.style.left = p.clientX + "px"; t.style.top = p.clientY + "px"; clearTimeout(t._h); t._h = setTimeout(() => t.classList.add("hide"), 2200); }
+
+function drawHist(w) {
+  const box = $("#ch-hist"), Wd = Math.max(320, box.clientWidth), H = 240, P = 52;
+  const own = w.history.map((s) => [Date.parse(s.t), s.min]);
+  const ext = w.ext.map(([d, p]) => [Date.parse(d + "T12:00:00Z"), p]);
+  const all = [...own, ...ext];
+  if (!all.length) { box.innerHTML = `<div class="mut">Wykres pojawi się po pierwszym skanie.</div>`; return; }
+  const ys = all.map((p) => p[1]).concat(w.targetPrice ? [w.targetPrice] : []);
+  let lo = Math.min(...ys), hi = Math.max(...ys); if (lo === hi) { lo *= 0.9; hi *= 1.1; }
+  const ts = all.map((p) => p[0]), t0 = Math.min(...ts), t1 = Math.max(...ts);
+  const X = (t) => P + (Wd - P - 16) * (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)), Y = (v) => H - 34 - (H - 50) * (v - lo) / (hi - lo);
+  let s = "";
+  for (const v of [lo, (lo + hi) / 2, hi]) s += `<line x1="${P}" x2="${Wd - 16}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P - 8}" y="${Y(v) + 4}" text-anchor="end">${money(v)}</text>`;
+  if (w.targetPrice) s += `<line x1="${P}" x2="${Wd - 16}" y1="${Y(w.targetPrice)}" y2="${Y(w.targetPrice)}" stroke="var(--good)" stroke-dasharray="5 5" stroke-width="1.5"/>`;
+  const line = (pts, col, w2) => pts.length > 1 ? `<path d="${pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join("")}" fill="none" stroke="${col}" stroke-width="${w2}" stroke-linejoin="round"/>` : "";
+  s += line(ext, "var(--grey-line)", 2) + line(own, "var(--acc)", 2.5);
+  const dots = [...ext.map((p) => [...p, "var(--grey-line)", "Google"]), ...own.map((p) => [...p, "var(--acc)", "Skan"])];
+  s += dots.map(([t, p, col, src]) => `<circle cx="${X(t)}" cy="${Y(p)}" r="${dots.length > 80 ? 2.5 : 4}" fill="${col}" data-tip="${src}: ${new Date(t).toLocaleDateString("pl-PL")} · ${money(p, w.currency)}"/>`).join("");
+  const fmt = (t) => new Date(t).toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+  s += `<text x="${P}" y="${H - 8}">${fmt(t0)}</text><text x="${Wd - 16}" y="${H - 8}" text-anchor="end">${fmt(t1)}</text>`;
+  box.innerHTML = `<svg class="chart" viewBox="0 0 ${Wd} ${H}">${s}</svg>`;
+  box.querySelectorAll("[data-tip]").forEach((el) => { el.addEventListener("click", (e) => showTip(e, el.dataset.tip)); el.addEventListener("mouseenter", (e) => showTip(e, el.dataset.tip)); });
+}
+function drawCal(w) {
+  const box = $("#ch-cal"), cal = w.last?.calendar || [];
+  if (!cal.length) { box.innerHTML = `<div class="mut">Brak danych z ostatniego skanu.</div>`; return; }
+  const Wd = Math.max(320, box.clientWidth), H = 220, P = 8, hi = Math.max(...cal.map((c) => c.p)), lo = Math.min(...cal.map((c) => c.p));
+  const bw = (Wd - 2 * P) / cal.length, step = Math.max(1, Math.ceil(cal.length / (Wd / 56)));
+  let s = "";
+  cal.forEach((c, i) => {
+    const h = (H - 50) * (c.p / hi), x = P + i * bw, good = w.targetPrice ? c.p <= w.targetPrice : c.p === lo;
+    s += `<rect x="${x + 1.5}" y="${H - 28 - h}" width="${Math.max(bw - 3, 2)}" height="${h}" rx="${Math.min(5, bw / 3)}" fill="${good ? "var(--good)" : "var(--acc)"}" opacity="${good ? 1 : 0.35}" data-tip="${dLong(c.d)} · od ${money(c.p, w.currency)}"/>`;
+    if (bw > 30) s += `<text x="${x + bw / 2}" y="${H - 34 - h}" text-anchor="middle" style="font-size:10px">${money(c.p)}</text>`;
+    if (i % step === 0) s += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${dShort(c.d)}</text>`;
+  });
+  box.innerHTML = `<svg class="chart" viewBox="0 0 ${Wd} ${H}">${s}</svg>`;
+  box.querySelectorAll("[data-tip]").forEach((el) => { el.addEventListener("click", (e) => showTip(e, el.dataset.tip)); el.addEventListener("mouseenter", (e) => showTip(e, el.dataset.tip)); });
+}
+window.addEventListener("resize", () => { if (DETAIL && location.hash.startsWith("#w")) { drawHist(DETAIL); drawCal(DETAIL); } });
+
+async function scanNow(id) { try { await api(`/watches/${id}/scan`, { method: "POST" }); toast("Sprawdzam ceny w chmurze…"); route(); } catch (e) { toast(e.message); } }
+async function toggleWatch(id, active) { await api("/watches/" + id, { method: "PUT", body: { active } }); route(); }
+async function delWatch(id) { if (!confirm("Usunąć tę obserwację razem z historią cen?")) return; await api("/watches/" + id, { method: "DELETE" }); go(""); }
+
+// ===================================================================== edytor obserwacji
+function sheet(html) {
+  const bg = document.createElement("div"); bg.className = "sheet-bg";
+  bg.innerHTML = `<div class="sheet">${html}</div>`;
+  bg.addEventListener("click", (e) => { if (e.target === bg) bg.remove(); });
+  document.body.append(bg);
+  return bg;
+}
+function picker(id, title, selected) {
+  const st = { sel: [...selected], q: "" };
+  const wrap = document.createElement("div"); wrap.className = "picker";
+  const kindIc = { kraj: "🌍", region: "🗺️", lotnisko: "✈️" };
+  const render = () => {
+    const q = st.q.trim().toLowerCase();
+    const items = CATALOG.filter((c) => !q || c.label.toLowerCase().includes(q) || c.token.toLowerCase().includes(q) || c.sub.toLowerCase().includes(q));
+    const groups = [["kraj", "Kraje"], ["region", "Regiony"], ["lotnisko", "Lotniska"]];
+    let res = "";
+    for (const [k, name] of groups) {
+      const xs = items.filter((c) => c.kind === k).sort((a, b) => a.label.localeCompare(b.label, "pl")).slice(0, q ? 30 : k === "lotnisko" ? 40 : 60);
+      if (xs.length) res += `<div class="grp">${name}</div>` + xs.map((c) => `<div class="opt ${st.sel.includes(c.token) ? "sel" : ""}" data-t="${c.token}"><div class="ic">${kindIc[k]}</div><div><div class="t">${esc(c.label)}</div><div class="s">${esc(c.sub)}</div></div></div>`).join("");
+    }
+    const up = st.q.trim().toUpperCase();
+    if (/^[A-Z]{3}$/.test(up) && !CATALOG.some((c) => c.token === up)) res = `<div class="opt" data-t="${up}"><div class="ic">✈️</div><div><div class="t">${up}</div><div class="s">inne lotnisko – kod IATA</div></div></div>` + res;
+    wrap.innerHTML = `
+      <label class="f">${title}</label>
+      <div class="chips" style="margin-bottom:8px">${st.sel.map((t, i) => { const c = CATALOG.find((x) => x.token === t); return `<span class="chip">${esc(c ? c.label : t)}<button type="button" data-rm="${i}" aria-label="usuń">×</button></span>`; }).join("") || '<span class="mut small">Nic nie wybrano – wyszukaj poniżej i dotknij, aby dodać.</span>'}</div>
+      <input class="in" placeholder="Szukaj: miasto, kraj, region lub kod lotniska…" value="${esc(st.q)}">
+      <div class="results">${res || '<div class="opt mut">Brak wyników</div>'}</div>
+      <div class="resolved" id="${id}-res"></div>`;
+    const inp = $("input", wrap);
+    inp.oninput = (e) => { st.q = e.target.value; const pos = e.target.selectionStart; render(); const i2 = $("input", wrap); i2.focus(); i2.setSelectionRange(pos, pos); };
+    wrap.querySelectorAll(".opt[data-t]").forEach((el) => el.onclick = () => { const t = el.dataset.t; if (!st.sel.includes(t)) st.sel.push(t); st.q = ""; render(); });
+    wrap.querySelectorAll("[data-rm]").forEach((el) => el.onclick = () => { st.sel.splice(+el.dataset.rm, 1); render(); });
+    if (st.sel.length) api("/resolve", { method: "POST", body: { tokens: st.sel } }).then((r) => { const el = $(`#${id}-res`, wrap); if (el) el.textContent = `${r.length} lotnisk: ${r.map((x) => x.code).join(", ")}`; }).catch((e) => { const el = $(`#${id}-res`, wrap); if (el) el.textContent = e.message; });
+  };
+  render();
+  wrap.get = () => st.sel;
+  return wrap;
+}
+function monthButtons() {
+  const out = [], d = new Date(); d.setDate(1);
+  for (let i = 1; i <= 12; i++) { const m = new Date(d.getFullYear(), d.getMonth() + i, 1); out.push(m); }
+  return out;
+}
+function openEditor(w = null) {
+  const today = new Date(), df = new Date(today.getFullYear(), today.getMonth() + 3, 1), dt = new Date(today.getFullYear(), today.getMonth() + 4, 0);
+  const v = w || { name: "", origins: [], destinations: [], dateFrom: isoLocal(df), dateTo: isoLocal(dt), oneWay: false, directOnly: false, nightsMin: 5, nightsMax: 10, targetPrice: "", dropPct: 5, currency: "PLN", intervalHours: 6 };
+  const bg = sheet(`
+    <div class="bar"><h2 style="margin:0" class="grow">${w ? "Edytuj obserwację" : "Nowa obserwacja"}</h2><button class="btn icon ghost" data-close>${I.x}</button></div>
+    <form id="ef">
+      <div id="p-o"></div><div id="p-d"></div>
+      <label class="f">Kiedy chcesz wylecieć?</label>
+      <div class="quick" id="months">${monthButtons().map((m) => `<button type="button" data-m="${isoLocal(m)}">${MONTHS[m.getMonth()]} ${m.getFullYear()}</button>`).join("")}</div>
+      <div class="two" style="margin-top:10px">
+        <div><div class="mut small" style="margin-bottom:6px">Wylot najwcześniej</div><input class="in" type="date" name="dateFrom" value="${v.dateFrom}" required></div>
+        <div><div class="mut small" style="margin-bottom:6px">Wylot najpóźniej</div><input class="in" type="date" name="dateTo" value="${v.dateTo}" required></div>
+      </div>
+      <label class="switch"><span>Lot w jedną stronę</span><input type="checkbox" name="oneWay" ${v.oneWay ? "checked" : ""}></label>
+      <div id="nights" class="two">
+        <div><div class="mut small" style="margin-bottom:6px">Pobyt – minimum nocy</div><input class="in" type="number" inputmode="numeric" min="0" max="60" name="nightsMin" value="${v.nightsMin}"></div>
+        <div><div class="mut small" style="margin-bottom:6px">Pobyt – maksimum nocy</div><input class="in" type="number" inputmode="numeric" min="0" max="60" name="nightsMax" value="${v.nightsMax}"></div>
+      </div>
+      <label class="switch"><span>Tylko loty bezpośrednie</span><input type="checkbox" name="directOnly" ${v.directOnly ? "checked" : ""}></label>
+      <label class="f">Kiedy dać mi znać?</label>
+      <div class="three">
+        <div><div class="mut small" style="margin-bottom:6px">Cena docelowa (os.)</div><input class="in" type="number" inputmode="numeric" name="targetPrice" placeholder="np. 900" value="${v.targetPrice ?? ""}"></div>
+        <div><div class="mut small" style="margin-bottom:6px">Albo spadek o %</div><input class="in" type="number" inputmode="decimal" name="dropPct" value="${v.dropPct}"></div>
+        <div><div class="mut small" style="margin-bottom:6px">Waluta</div><select class="in" name="currency">${["PLN", "EUR", "USD", "GBP"].map((c) => `<option ${c === v.currency ? "selected" : ""}>${c}</option>`).join("")}</select></div>
+      </div>
+      <label class="f">Jak często sprawdzać?</label>
+      <div class="seg" id="iv">${[1, 3, 6, 12, 24].map((h) => `<button type="button" data-h="${h}" class="${+v.intervalHours === h ? "on" : ""}">co ${h} h</button>`).join("")}</div>
+      <label class="f">Nazwa (opcjonalnie)</label>
+      <input class="in" name="name" placeholder="np. Grecja w lutym" value="${esc(w ? v.name : "")}">
+      <p class="err" id="eerr"></p>
+      <button class="btn primary" style="width:100%;margin-top:6px;min-height:52px">${w ? "Zapisz zmiany" : "Zapisz i sprawdź ceny"}</button>
+    </form>`);
+  const po = picker("po", "Skąd lecisz? (lotniska, regiony lub kraje)", v.origins), pd = picker("pd", "Dokąd? (lotniska, regiony lub kraje)", v.destinations);
+  $("#p-o", bg).append(po); $("#p-d", bg).append(pd);
+  const f = $("#ef", bg);
+  let interval = +v.intervalHours;
+  const nightsVis = () => $("#nights", bg).style.display = f.oneWay.checked ? "none" : "";
+  f.oneWay.onchange = nightsVis; nightsVis();
+  bg.querySelectorAll("#iv button").forEach((b) => b.onclick = () => { interval = +b.dataset.h; bg.querySelectorAll("#iv button").forEach((x) => x.classList.toggle("on", x === b)); });
+  bg.querySelectorAll("#months button").forEach((b) => b.onclick = () => {
+    const m = new Date(b.dataset.m + "T00:00:00"); f.dateFrom.value = isoLocal(m); f.dateTo.value = isoLocal(new Date(m.getFullYear(), m.getMonth() + 1, 0));
+    bg.querySelectorAll("#months button").forEach((x) => x.classList.toggle("on", x === b));
+  });
+  $("[data-close]", bg).onclick = () => bg.remove();
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const body = { origins: po.get(), destinations: pd.get(), dateFrom: f.dateFrom.value, dateTo: f.dateTo.value, oneWay: f.oneWay.checked, directOnly: f.directOnly.checked,
+      nightsMin: f.nightsMin.value, nightsMax: f.nightsMax.value, targetPrice: f.targetPrice.value, dropPct: f.dropPct.value || 0, currency: f.currency.value, intervalHours: interval, name: f.name.value.trim() || undefined };
+    const btn = $("button.primary", f); btn.disabled = true;
+    try {
+      const r = w ? await api("/watches/" + w.id, { method: "PUT", body }) : await api("/watches", { method: "POST", body });
+      bg.remove();
+      if (location.hash === "#w" + r.id) route(); else go("w" + r.id);
+      if (!w) toast("Zapisano! Sprawdzam ceny w chmurze…");
+    } catch (err) { $("#eerr", bg).textContent = err.message; btn.disabled = false; }
+  };
+}
+
+// ===================================================================== ustawienia
+async function openSettings(first = false) {
+  const s = await api("/settings");
+  const KEEP = "__keep__";
+  const secret = (name, val, ph) => `<input class="in" name="${name}" type="password" autocomplete="off" placeholder="${val === KEEP ? "zapisany – wpisz nowy, aby zmienić" : ph}">`;
+  const bg = sheet(`
+    <div class="bar"><h2 style="margin:0" class="grow">Ustawienia</h2><button class="btn icon ghost" data-close>${I.x}</button></div>
+    ${first ? `<div class="note">Gotowe! Teraz wybierz źródło cen i podłącz Telegram, żeby dostawać alerty. Możesz też zacząć od trybu Demo i ustawić to później.</div>` : ""}
+    <form id="sf">
+      <label class="f">Źródło cen</label>
+      ${Object.entries(STATE.providers).map(([k, label]) => `<label class="prov ${s.provider === k ? "on" : ""}"><input type="radio" name="provider" value="${k}" ${s.provider === k ? "checked" : ""}><div><b>${esc(label.split(" – ")[0])}</b><div class="mut small">${esc(label.split(" – ").slice(1).join(" – "))}</div></div></label>`).join("")}
+      <label class="f">Token Travelpayouts <a class="small" href="https://www.travelpayouts.com/" target="_blank" rel="noopener">załóż darmowe konto ↗</a></label>
+      ${secret("travelpayoutsToken", s.travelpayoutsToken, "wklej token API")}
+      <label class="f">Klucz SerpApi (Google Flights) <a class="small" href="https://serpapi.com/users/sign_up" target="_blank" rel="noopener">250 zapytań/mies. gratis ↗</a></label>
+      ${secret("serpapiKey", s.serpapiKey, "wklej klucz API")}
+      <div class="mut small" style="margin-top:6px">Maks. zapytań Google Flights na jeden skan:</div>
+      <input class="in" type="number" name="serpapiMaxQueries" min="1" max="40" value="${s.serpapiMaxQueries}" style="max-width:140px;margin-top:6px">
+
+      <label class="f">Alerty na Telegram</label>
+      <div class="note small">1) W Telegramie napisz do <b>@BotFather</b> → <code>/newbot</code> i skopiuj token. 2) Napisz cokolwiek do swojego nowego bota. 3) Wklej token i dotknij „Połącz”.</div>
+      <div style="display:flex;gap:8px;margin-top:10px">${secret("telegramToken", s.telegramToken, "token bota, np. 123456:ABC…")}<button type="button" class="btn" id="tgdetect">Połącz</button></div>
+      <input class="in" name="telegramChatId" placeholder="chat ID (uzupełni się samo)" value="${esc(s.telegramChatId)}" style="margin-top:8px">
+      <button type="button" class="btn" id="tgtest" style="margin-top:8px">Wyślij testowy alert</button>
+      <p class="err" id="serr"></p>
+      <button class="btn primary" style="width:100%;margin-top:10px;min-height:52px">Zapisz ustawienia</button>
+    </form>
+    <label class="f">Konto</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="chpw">Zmień hasło</button><button class="btn danger" id="lo">Wyloguj</button></div>
+    <p class="mut small" style="margin-top:20px">Ceny sprawdza serwer Netlify co godzinę (każda obserwacja według swojego interwału). Historię cen aplikacja zbiera od dnia dodania obserwacji, a Google Flights dodaje historię trasy z ok. 60 dni.</p>`);
+  const f = $("#sf", bg);
+  $("[data-close]", bg).onclick = () => bg.remove();
+  bg.querySelectorAll(".prov input").forEach((r) => r.onchange = () => bg.querySelectorAll(".prov").forEach((p) => p.classList.toggle("on", $("input", p).checked)));
+  const collect = () => { const b = { provider: f.provider.value, serpapiMaxQueries: +f.serpapiMaxQueries.value || 8, telegramChatId: f.telegramChatId.value.trim() };
+    for (const k of ["travelpayoutsToken", "serpapiKey", "telegramToken"]) b[k] = f[k].value.trim() || KEEP; return b; };
+  $("#tgdetect", bg).onclick = async () => { try { const r = await api("/telegram/detect", { method: "POST", body: { token: f.telegramToken.value.trim() || KEEP } }); f.telegramChatId.value = r.chatId; toast(`Połączono${r.name ? " z: " + r.name : ""}. Zapisz ustawienia.`); } catch (e) { $("#serr", bg).textContent = e.message; } };
+  $("#tgtest", bg).onclick = async () => { try { await api("/settings", { method: "PUT", body: collect() }); const r = await api("/telegram/test", { method: "POST" }); toast("Wynik: " + r.delivered); } catch (e) { $("#serr", bg).textContent = e.message; } };
+  f.onsubmit = async (e) => { e.preventDefault(); try { await api("/settings", { method: "PUT", body: collect() }); bg.remove(); toast("Zapisano ustawienia."); } catch (err) { $("#serr", bg).textContent = err.message; } };
+  $("#lo", bg).onclick = () => { bg.remove(); logout(); };
+  $("#chpw", bg).onclick = async () => { const p = prompt("Nowe hasło (min. 6 znaków):"); if (!p) return; try { const r = await api("/password", { method: "POST", body: { password: p } }); setToken(r.token); toast("Hasło zmienione."); } catch (e) { toast(e.message); } };
+}
+
+route();
+</script>
+</body>
+</html>
